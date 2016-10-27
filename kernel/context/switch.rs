@@ -16,18 +16,27 @@ pub unsafe fn switch() -> bool {
         arch::interrupt::pause();
     }
 
+    let cpuid = ::cpu_id();
+
+    //println!("{}: try switch {}", cpuid, super::context_id());
+
     let from_ptr;
     let mut to_ptr = 0 as *mut Context;
     {
         let contexts = contexts();
         {
-            let context_lock = contexts.current().expect("context::switch: Not inside of context");
+            let context_lock = contexts.current().expect("context::switch: not inside of context");
             let mut context = context_lock.write();
             from_ptr = context.deref_mut() as *mut Context;
         }
 
         let check_context = |context: &mut Context| -> bool {
-            if context.cpuid == None || context.cpuid == Some(::cpu_id()) {
+            if context.cpuid == None {
+                context.cpuid = Some(cpuid);
+                println!("{}: take {} {}", cpuid, context.id, ::core::str::from_utf8_unchecked(&context.name.lock()));
+            }
+
+            if context.cpuid == Some(cpuid) {
                 if context.status == Status::Blocked && context.wake.is_some() {
                     let wake = context.wake.expect("context::switch: wake not set");
 
@@ -74,7 +83,7 @@ pub unsafe fn switch() -> bool {
         return false;
     }
 
-    // println!("{}: Switch {} to {}", ::cpu_id(), (&*from_ptr).id, (&*to_ptr).id);
+    //println!("{}: Switch {} to {}", cpuid, (&*from_ptr).id, (&*to_ptr).id);
 
     (&mut *from_ptr).running = false;
     (&mut *to_ptr).running = true;

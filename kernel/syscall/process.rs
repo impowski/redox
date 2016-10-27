@@ -62,6 +62,7 @@ pub fn clone(flags: usize, stack_base: usize) -> Result<usize> {
         let rgid;
         let euid;
         let egid;
+        let mut cpuid = None;
         let arch;
         let vfork;
         let mut kfx_option = None;
@@ -87,6 +88,10 @@ pub fn clone(flags: usize, stack_base: usize) -> Result<usize> {
             rgid = context.rgid;
             euid = context.euid;
             egid = context.egid;
+
+            if flags & CLONE_VM == CLONE_VM {
+                cpuid = context.cpuid;
+            }
 
             arch = context.arch.clone();
 
@@ -276,6 +281,8 @@ pub fn clone(flags: usize, stack_base: usize) -> Result<usize> {
             context.rgid = rgid;
             context.euid = euid;
             context.egid = egid;
+
+            context.cpuid = cpuid;
 
             context.status = context::Status::Runnable;
 
@@ -897,6 +904,7 @@ pub fn virttophys(virtual_address: usize) -> Result<usize> {
 pub fn waitpid(pid: usize, status_ptr: usize, flags: usize) -> Result<usize> {
     loop {
         let mut exited = false;
+        let mut running;
         let waitpid;
         {
             let contexts = context::contexts();
@@ -909,10 +917,23 @@ pub fn waitpid(pid: usize, status_ptr: usize, flags: usize) -> Result<usize> {
                 }
                 exited = true;
             }
+            running = context.running;
             waitpid = context.waitpid.clone();
         }
 
         if exited {
+            // Spin until not running
+            while running {
+                {
+                    let contexts = context::contexts();
+                    let context_lock = contexts.get(pid).ok_or(Error::new(ESRCH))?;
+                    let context = context_lock.read();
+                    running = context.running;
+                }
+
+                arch::interrupt::pause();
+            }
+
             let mut contexts = context::contexts_mut();
             return contexts.remove(pid).ok_or(Error::new(ESRCH)).and(Ok(pid));
         } else if flags & WNOHANG == WNOHANG {

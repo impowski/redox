@@ -195,6 +195,15 @@ pub extern fn kmain_ap(id: usize) {
     println!("AP {}: {:?}", id, pid);
 
     loop {
-        unsafe { interrupt::enable_and_halt() }
+        unsafe {
+            interrupt::disable();
+            if context::switch() {
+                interrupt::enable_and_nop();
+            } else {
+                interrupt::enable_and_nop();
+                // Enable interrupts, then halt CPU (to save power) until the next interrupt is actually fired.
+                // interrupt::enable_and_halt();
+            }
+        }
     }
 }
