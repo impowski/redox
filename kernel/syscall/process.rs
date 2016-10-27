@@ -62,7 +62,7 @@ pub fn clone(flags: usize, stack_base: usize) -> Result<usize> {
         let rgid;
         let euid;
         let egid;
-        let mut cpuid = None;
+        let mut cpu_id = None;
         let arch;
         let vfork;
         let mut kfx_option = None;
@@ -90,7 +90,7 @@ pub fn clone(flags: usize, stack_base: usize) -> Result<usize> {
             egid = context.egid;
 
             if flags & CLONE_VM == CLONE_VM {
-                cpuid = context.cpuid;
+                cpu_id = context.cpu_id;
             }
 
             arch = context.arch.clone();
@@ -282,7 +282,7 @@ pub fn clone(flags: usize, stack_base: usize) -> Result<usize> {
             context.euid = euid;
             context.egid = egid;
 
-            context.cpuid = cpuid;
+            context.cpu_id = cpu_id;
 
             context.status = context::Status::Runnable;
 

@@ -42,8 +42,8 @@ pub fn resource() -> Result<Vec<u8>> {
                 stat_string.push('+');
             }
 
-            let cpu_string = if let Some(cpuid) = context.cpuid {
-                format!("{}", cpuid)
+            let cpu_string = if let Some(cpu_id) = context.cpu_id {
+                format!("{}", cpu_id)
             } else {
                 format!("?")
             };

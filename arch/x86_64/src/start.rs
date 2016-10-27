@@ -109,7 +109,7 @@ pub unsafe extern fn kstart() -> ! {
         }
 
         // Initialize devices
-        device::init();
+        device::init(&mut active_table);
 
         // Read ACPI tables, starts APs
         acpi::init(&mut active_table);
@@ -144,6 +144,9 @@ pub unsafe extern fn kstart_ap(cpu_id: usize, bsp_table: usize, stack_start: usi
             TDATA_TEST_NONZERO -= 1;
             assert_eq!(TDATA_TEST_NONZERO, 0xFFFFFFFFFFFFFFFE);
         }
+
+        // Initialize devices (for AP)
+        device::init_ap();
 
         AP_READY.store(true, Ordering::SeqCst);
     }
