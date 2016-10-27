@@ -136,13 +136,97 @@ macro_rules! interrupt {
     };
 }
 
+#[repr(packed)]
+pub struct InterruptStack {
+    fs: usize,
+    r11: usize,
+    r10: usize,
+    r9: usize,
+    r8: usize,
+    rsi: usize,
+    rdi: usize,
+    rdx: usize,
+    rcx: usize,
+    rax: usize,
+    rip: usize,
+    cs: usize,
+    rflags: usize,
+}
+
 #[macro_export]
-macro_rules! interrupt_error {
-    ($name:ident, $func:block) => {
+macro_rules! interrupt_stack {
+    ($name:ident, $stack: ident, $func:block) => {
         #[naked]
         pub unsafe extern fn $name () {
             #[inline(never)]
-            unsafe fn inner() {
+            unsafe fn inner($stack: &$crate::InterruptStack) {
+                $func
+            }
+
+            // Push scratch registers
+            asm!("push rax
+                push rcx
+                push rdx
+                push rdi
+                push rsi
+                push r8
+                push r9
+                push r10
+                push r11
+                push fs
+                mov rax, 0x18
+                mov fs, ax"
+                : : : : "intel", "volatile");
+
+            // Get reference to stack variables
+            let rsp: usize;
+            asm!("" : "={rsp}"(rsp) : : : "intel", "volatile");
+
+            // Call inner rust function
+            inner(&*(rsp as *const $crate::InterruptStack));
+
+            // Pop scratch registers and return
+            asm!("pop fs
+                pop r11
+                pop r10
+                pop r9
+                pop r8
+                pop rsi
+                pop rdi
+                pop rdx
+                pop rcx
+                pop rax
+                iretq"
+                : : : : "intel", "volatile");
+        }
+    };
+}
+
+#[repr(packed)]
+pub struct InterruptErrorStack {
+    fs: usize,
+    r11: usize,
+    r10: usize,
+    r9: usize,
+    r8: usize,
+    rsi: usize,
+    rdi: usize,
+    rdx: usize,
+    rcx: usize,
+    rax: usize,
+    code: usize,
+    rip: usize,
+    cs: usize,
+    rflags: usize,
+}
+
+#[macro_export]
+macro_rules! interrupt_error {
+    ($name:ident, $stack:ident, $func:block) => {
+        #[naked]
+        pub unsafe extern fn $name () {
+            #[inline(never)]
+            unsafe fn inner($stack: &$crate::InterruptErrorStack) {
                 $func
             }
 
@@ -162,8 +246,12 @@ macro_rules! interrupt_error {
                 mov fs, ax"
                 : : : : "intel", "volatile");
 
+            // Get reference to stack variables
+            let rsp: usize;
+            asm!("" : "={rsp}"(rsp) : : : "intel", "volatile");
+
             // Call inner rust function
-            inner();
+            inner(&*(rsp as *const $crate::InterruptErrorStack));
 
             // Pop scratch registers, error code, and return
             asm!("pop fs
