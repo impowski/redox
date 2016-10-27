@@ -17,6 +17,7 @@ extern crate hole_list_allocator as allocator;
 extern crate bitflags;
 extern crate io;
 extern crate spin;
+extern crate syscall;
 pub extern crate x86;
 
 // Because the memory map is so important to not be aliased, it is defined here, in one place
