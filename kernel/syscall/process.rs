@@ -521,6 +521,8 @@ pub fn exec(path: &[u8], arg_ptrs: &[[usize; 2]]) -> Result<usize> {
                             memory.remap(flags, true);
 
                             context.image.push(memory.to_shared());
+                        } else if segment.p_type == program_header::PT_TLS {
+                            
                         }
                     }
 
