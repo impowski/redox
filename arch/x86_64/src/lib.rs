@@ -41,12 +41,17 @@ pub extern crate x86;
 
     /// Offset to kernel percpu variables
     //TODO: Use 64-bit fs offset to enable this pub const KERNEL_PERCPU_OFFSET: usize = KERNEL_HEAP_OFFSET - PML4_SIZE;
-    pub const KERNEL_PERCPU_OFFSET: usize = 0xC0000000;
+    pub const KERNEL_PERCPU_OFFSET: usize = 0xC000_0000;
     /// Size of kernel percpu variables
     pub const KERNEL_PERCPU_SIZE: usize = 64 * 1024; // 64 KB
 
     /// Offset to user image
     pub const USER_OFFSET: usize = 0;
+
+    /// Offset to user stack
+    pub const USER_STACK_OFFSET: usize = 0x8000_0000;
+    /// Size of user stack
+    pub const USER_STACK_SIZE: usize = 1024 * 1024; // 1 MB
 
     /// Offset to user arguments
     pub const USER_ARG_OFFSET: usize = USER_OFFSET + PML4_SIZE/2;
@@ -56,11 +61,6 @@ pub extern crate x86;
 
     /// Offset to user grants
     pub const USER_GRANT_OFFSET: usize = USER_HEAP_OFFSET + PML4_SIZE;
-
-    /// Offset to user stack
-    pub const USER_STACK_OFFSET: usize = USER_GRANT_OFFSET + PML4_SIZE;
-    /// Size of user stack
-    pub const USER_STACK_SIZE: usize = 1024 * 1024; // 1 MB
 
     /// Offset to user temporary image (used when cloning)
     pub const USER_TMP_OFFSET: usize = USER_STACK_OFFSET + PML4_SIZE;

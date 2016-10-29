@@ -488,6 +488,7 @@ pub fn exec(path: &[u8], arg_ptrs: &[[usize; 2]]) -> Result<usize> {
                     }
 
                     // Map and copy new segments
+                    let mut tls = 0;
                     for segment in elf.segments() {
                         if segment.p_type == program_header::PT_LOAD {
                             let mut memory = context::memory::Memory::new(
@@ -522,7 +523,7 @@ pub fn exec(path: &[u8], arg_ptrs: &[[usize; 2]]) -> Result<usize> {
 
                             context.image.push(memory.to_shared());
                         } else if segment.p_type == program_header::PT_TLS {
-                            
+                            tls = (segment.p_vaddr + segment.p_memsz) as usize;
                         }
                     }
 
@@ -544,6 +545,10 @@ pub fn exec(path: &[u8], arg_ptrs: &[[usize; 2]]) -> Result<usize> {
                         true
                     ));
 
+                    // Set TLS pointer
+                    unsafe { *(arch::USER_STACK_OFFSET as *mut usize) = tls; }
+
+                    // Push arguments
                     let mut arg_size = 0;
                     for arg in args.iter().rev() {
                         sp -= mem::size_of::<usize>();
