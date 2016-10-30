@@ -207,10 +207,6 @@ pub extern fn kmain_ap(id: usize) {
     let pid = syscall::getpid();
     println!("AP {}: {:?}", id, pid);
 
-    while ! unsafe { context::switch() } {
-        interrupt::pause();
-    }
-
     loop {
         unsafe {
             interrupt::disable();
