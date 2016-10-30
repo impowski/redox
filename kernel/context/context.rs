@@ -5,7 +5,7 @@ use spin::Mutex;
 
 use arch;
 use context::file::File;
-use context::memory::{Grant, Memory, SharedMemory};
+use context::memory::{Grant, Memory, SharedMemory, Tls};
 use syscall::data::Event;
 use sync::{WaitCondition, WaitQueue};
 
@@ -55,6 +55,8 @@ pub struct Context {
     pub heap: Option<SharedMemory>,
     /// User stack
     pub stack: Option<Memory>,
+    /// User Tls
+    pub tls: Option<Tls>,
     /// User grants
     pub grants: Arc<Mutex<Vec<Grant>>>,
     /// The name of the context
@@ -91,6 +93,7 @@ impl Context {
             image: Vec::new(),
             heap: None,
             stack: None,
+            tls: None,
             grants: Arc::new(Mutex::new(Vec::new())),
             name: Arc::new(Mutex::new(Vec::new())),
             cwd: Arc::new(Mutex::new(Vec::new())),

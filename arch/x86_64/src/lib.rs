@@ -62,8 +62,11 @@ pub extern crate x86;
     /// Size of user stack
     pub const USER_STACK_SIZE: usize = 1024 * 1024; // 1 MB
 
+    /// Offset to user TLS
+    pub const USER_TLS_OFFSET: usize = USER_STACK_OFFSET + PML4_SIZE;
+
     /// Offset to user temporary image (used when cloning)
-    pub const USER_TMP_OFFSET: usize = USER_STACK_OFFSET + PML4_SIZE;
+    pub const USER_TMP_OFFSET: usize = USER_TLS_OFFSET + PML4_SIZE;
 
     /// Offset to user temporary heap (used when cloning)
     pub const USER_TMP_HEAP_OFFSET: usize = USER_TMP_OFFSET + PML4_SIZE;
@@ -73,6 +76,9 @@ pub extern crate x86;
 
     /// Offset to user temporary stack (used when cloning)
     pub const USER_TMP_STACK_OFFSET: usize = USER_TMP_GRANT_OFFSET + PML4_SIZE;
+
+    /// Offset to user temporary tls (used when cloning)
+    pub const USER_TMP_TLS_OFFSET: usize = USER_TMP_STACK_OFFSET + PML4_SIZE;
 
 
 /// Print to console
