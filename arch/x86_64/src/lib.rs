@@ -112,6 +112,8 @@ macro_rules! interrupt {
                 push r9
                 push r10
                 push r11
+                rdfsbase rax
+                push rax
                 push fs
                 mov rax, 0x18
                 mov fs, ax"
@@ -122,6 +124,8 @@ macro_rules! interrupt {
 
             // Pop scratch registers and return
             asm!("pop fs
+                pop rax
+                wrfsbase rax
                 pop r11
                 pop r10
                 pop r9
@@ -174,6 +178,8 @@ macro_rules! interrupt_stack {
                 push r9
                 push r10
                 push r11
+                rdfsbase rax
+                push rax
                 push fs
                 mov rax, 0x18
                 mov fs, ax"
@@ -188,6 +194,8 @@ macro_rules! interrupt_stack {
 
             // Pop scratch registers and return
             asm!("pop fs
+                pop rax
+                wrfsbase rax
                 pop r11
                 pop r10
                 pop r9

@@ -158,12 +158,14 @@ pub unsafe extern fn kstart_ap(cpu_id: usize, bsp_table: usize, stack_start: usi
     kmain_ap(cpu_id);
 }
 
-pub unsafe fn usermode(ip: usize, sp: usize) -> ! {
+pub unsafe fn usermode(ip: usize, sp: usize, fs: usize) -> ! {
     // Go to usermode
-    asm!("mov ds, ax
+    asm!("xchg bx, bx
+        mov ds, ax
         mov es, ax
-        mov fs, bx
+        mov fs, ax
         mov gs, ax
+        wrfsbase rbx
         push rax
         push rcx
         push rdx
@@ -172,7 +174,7 @@ pub unsafe fn usermode(ip: usize, sp: usize) -> ! {
         iretq"
         : // No output because it never returns
         :   "{rax}"(gdt::GDT_USER_DATA << 3 | 3), // Data segment
-            "{rbx}"(gdt::GDT_USER_TLS << 3 | 3), // TLS segment
+            "{rbx}"(fs), // TLS segment
             "{rcx}"(sp), // Stack pointer
             "{rdx}"(3 << 12 | 1 << 9), // Flags - Set IOPL and interrupt enable flag
             "{rsi}"(gdt::GDT_USER_CODE << 3 | 3), // Code segment

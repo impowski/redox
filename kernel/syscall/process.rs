@@ -418,6 +418,7 @@ pub fn clone(flags: usize, stack_base: usize) -> Result<usize> {
 pub fn exec(path: &[u8], arg_ptrs: &[[usize; 2]]) -> Result<usize> {
     let entry;
     let mut sp = arch::USER_STACK_OFFSET + arch::USER_STACK_SIZE - 256;
+    let fs = arch::USER_STACK_OFFSET;
 
     {
         let mut args = Vec::new();
@@ -611,7 +612,7 @@ pub fn exec(path: &[u8], arg_ptrs: &[[usize; 2]]) -> Result<usize> {
     }
 
     // Go to usermode
-    unsafe { usermode(entry, sp); }
+    unsafe { usermode(entry, sp, fs); }
 }
 
 pub fn exit(status: usize) -> ! {
