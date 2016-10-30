@@ -1,3 +1,5 @@
+#![no_std]
+
 /// Memcpy
 ///
 /// Copy N bytes of memory from one location to another.
