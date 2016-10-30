@@ -48,11 +48,6 @@ pub extern crate x86;
     /// Offset to user image
     pub const USER_OFFSET: usize = 0;
 
-    /// Offset to user stack
-    pub const USER_STACK_OFFSET: usize = 0x8000_0000;
-    /// Size of user stack
-    pub const USER_STACK_SIZE: usize = 1024 * 1024; // 1 MB
-
     /// Offset to user arguments
     pub const USER_ARG_OFFSET: usize = USER_OFFSET + PML4_SIZE/2;
 
@@ -61,6 +56,11 @@ pub extern crate x86;
 
     /// Offset to user grants
     pub const USER_GRANT_OFFSET: usize = USER_HEAP_OFFSET + PML4_SIZE;
+
+    /// Offset to user stack
+    pub const USER_STACK_OFFSET: usize = USER_GRANT_OFFSET + PML4_SIZE;
+    /// Size of user stack
+    pub const USER_STACK_SIZE: usize = 1024 * 1024; // 1 MB
 
     /// Offset to user temporary image (used when cloning)
     pub const USER_TMP_OFFSET: usize = USER_STACK_OFFSET + PML4_SIZE;
