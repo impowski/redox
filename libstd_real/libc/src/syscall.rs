@@ -1,16 +1,14 @@
 /// Convert syscall types to libc types
 extern crate syscall;
 
-use core::{slice, str};
-
-use super::{c_char, c_int, c_void, mode_t, off_t, pid_t, gid_t, uid_t, sa_family_t, size_t, ssize_t, strlen};
+use super::{c_int, sa_family_t};
 
 use self::syscall::data::{Stat, TimeSpec};
 
 pub use self::syscall::error::*;
 pub use self::syscall::flag::*;
 pub use self::syscall::{
-    clock_gettime, clone, execve as exec, exit, futex, kill, nanosleep, setgid, setuid, waitpid,
+    clock_gettime, clone, execve as exec, exit, futex, getpid, kill, nanosleep, setgid, setuid, waitpid,
     chdir, getcwd, open, mkdir, rmdir, unlink, dup, pipe2,
     read, write, fpath, fstat, fsync, ftruncate, lseek, close
 };
@@ -84,6 +82,6 @@ pub extern "C" fn sbrk(n: isize) -> *mut u8 {
 }
 // } ralloc shims
 
-pub unsafe fn fcntl(fd: usize, cmd: c_int, arg: c_int) -> c_int {
-    unimplemented!();
+pub unsafe fn fcntl(_fd: usize, _cmd: c_int, _arg: c_int) -> c_int {
+    cvt(Err(Error::new(ENOSYS)))
 }

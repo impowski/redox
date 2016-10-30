@@ -1,4 +1,4 @@
-use super::{c_int, c_char, exit};
+use super::exit;
 
 #[no_mangle]
 #[naked]

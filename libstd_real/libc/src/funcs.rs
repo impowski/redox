@@ -7,3 +7,13 @@ pub unsafe extern fn strlen(ptr: *const c_char) -> size_t {
     }
     i
 }
+
+pub unsafe extern fn random() -> u64 {
+    let rand;
+    asm!("rdrand rax"
+        : "={rax}"(rand)
+        :
+        :
+        : "intel", "volatile");
+    rand
+}
