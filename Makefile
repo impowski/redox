@@ -234,9 +234,9 @@ $(BUILD)/libopenlibm.a: openlibm/libopenlibm.a
 	mkdir -p $(BUILD)
 	cp $< $@
 
-$(BUILD)/libstd.rlib: libstd_real/Cargo.toml rust/src/libstd/** $(BUILD)/libcore.rlib $(BUILD)/liballoc.rlib $(BUILD)/librustc_unicode.rlib $(BUILD)/libcollections.rlib $(BUILD)/librand.rlib $(BUILD)/libopenlibm.a
+$(BUILD)/libstd.rlib: libstd/Cargo.toml libstd/src/** $(BUILD)/libcore.rlib $(BUILD)/liballoc.rlib $(BUILD)/librustc_unicode.rlib $(BUILD)/libcollections.rlib $(BUILD)/librand.rlib $(BUILD)/libopenlibm.a
 	$(CARGO) rustc --verbose --manifest-path $< $(CARGOFLAGS) -o $@
-	cp libstd_real/target/$(TARGET)/debug/deps/*.rlib $(BUILD)
+	cp libstd/target/$(TARGET)/debug/deps/*.rlib $(BUILD)
 
 initfs/bin/%: drivers/%/Cargo.toml drivers/%/src/** $(BUILD)/libstd.rlib
 	mkdir -p initfs/bin
@@ -431,9 +431,10 @@ $(BUILD)/filesystem.bin: \
 		userutils \
 		schemes \
 		filesystem/bin/acid \
+		filesystem/bin/ion \
+		filesystem/bin/sh \
 		filesystem/bin/smith \
 		filesystem/bin/tar
-		#filesystem/bin/ion filesystem/bin/sh
 	rm -rf $@ $(BUILD)/filesystem/
 	echo exit | cargo run --manifest-path schemes/redoxfs/Cargo.toml --bin redoxfs-utility $@ 128
 	mkdir -p $(BUILD)/filesystem/
