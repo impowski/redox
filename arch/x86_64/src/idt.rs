@@ -58,8 +58,9 @@ pub unsafe fn init() {
     IDT[46].set_func(irq::ata1);
     IDT[47].set_func(irq::ata2);
 
-    // Set IPI handler (null)
-    IDT[0x40].set_func(ipi::ipi);
+    // Set IPI handlers
+    IDT[0x40].set_func(ipi::wakeup);
+    IDT[0x41].set_func(ipi::flush);
 
     // Set syscall function
     IDT[0x80].set_func(syscall::syscall);

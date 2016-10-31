@@ -30,7 +30,7 @@ impl Grant {
         }
 
         if flush_all {
-            active_table.flush_all();
+            active_table.flush_ipi();
         }
 
         Grant {
@@ -93,7 +93,7 @@ impl Grant {
         }
 
         if flush_all {
-            active_table.flush_all();
+            active_table.flush_ipi();
         }
     }
 
@@ -191,13 +191,12 @@ impl Memory {
             active_table.map(page, self.flags);
 
             if flush {
-                //active_table.flush(page);
                 flush_all = true;
             }
         }
 
         if flush_all {
-            active_table.flush_all();
+            active_table.flush_ipi();
         }
 
         if clear {
@@ -215,13 +214,12 @@ impl Memory {
             active_table.unmap(page);
 
             if flush {
-                //active_table.flush(page);
                 flush_all = true;
             }
         }
 
         if flush_all {
-            active_table.flush_all();
+            active_table.flush_ipi();
         }
     }
 
@@ -241,13 +239,12 @@ impl Memory {
             });
 
             if flush {
-                //active_table.flush(page);
                 flush_all = true;
             }
         }
 
         if flush_all {
-            active_table.flush_all();
+            active_table.flush_ipi();
         }
 
         self.start = new_start;
@@ -262,13 +259,12 @@ impl Memory {
             active_table.remap(page, new_flags);
 
             if flush {
-                //active_table.flush(page);
                 flush_all = true;
             }
         }
 
         if flush_all {
-            active_table.flush_all();
+            active_table.flush_ipi();
         }
 
         self.flags = new_flags;
@@ -288,14 +284,13 @@ impl Memory {
                     active_table.map(page, self.flags);
 
                     if flush {
-                        //active_table.flush(page);
                         flush_all = true;
                     }
                 }
             }
 
             if flush_all {
-                active_table.flush_all();
+                active_table.flush_ipi();
             }
 
             if clear {
@@ -312,14 +307,13 @@ impl Memory {
                     active_table.unmap(page);
 
                     if flush {
-                        //active_table.flush(page);
                         flush_all = true;
                     }
                 }
             }
 
             if flush_all {
-                active_table.flush_all();
+                active_table.flush_ipi();
             }
         }
 

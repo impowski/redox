@@ -49,7 +49,7 @@ pub fn init_sdt(sdt: &'static Sdt, active_table: &mut ActivePageTable) {
 
         // Map trampoline
         active_table.map_to(trampoline_page, trampoline_frame, entry::PRESENT | entry::WRITABLE);
-        active_table.flush(trampoline_page);
+        unsafe { active_table.flush(trampoline_page); }
 
         for madt_entry in madt.iter() {
             println!("      {:?}", madt_entry);
@@ -122,7 +122,7 @@ pub fn init_sdt(sdt: &'static Sdt, active_table: &mut ActivePageTable) {
                         }
                         println!(" Ready");
 
-                        active_table.flush_all();
+                        unsafe { active_table.flush_all(); }
                     } else {
                         println!("        CPU Disabled");
                     }
@@ -133,7 +133,7 @@ pub fn init_sdt(sdt: &'static Sdt, active_table: &mut ActivePageTable) {
 
         // Unmap trampoline
         active_table.unmap(trampoline_page);
-        active_table.flush(trampoline_page);
+        unsafe { active_table.flush(trampoline_page); }
     } else if let Some(dmar) = Dmar::new(sdt) {
         println!(": {}: {}", dmar.addr_width, dmar.flags);
 

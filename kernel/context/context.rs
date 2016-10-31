@@ -159,8 +159,7 @@ impl Context {
             if let Some(cpu_id) = self.cpu_id {
                 if cpu_id != ::cpu_id() {
                     // Send IPI if not on current CPU
-                    // TODO: Make this more architecture independent
-                    unsafe { arch::device::local_apic::LOCAL_APIC.ipi(cpu_id) };
+                    unsafe { arch::context::Context::wakeup(cpu_id); }
                 }
             }
             true

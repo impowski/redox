@@ -33,6 +33,10 @@ pub struct Context {
 }
 
 impl Context {
+    pub unsafe fn wakeup(cpu_id: usize) {
+        ::device::local_apic::LOCAL_APIC.ipi(cpu_id, 0x40);
+    }
+
     pub fn new() -> Context {
         Context {
             loadable: false,
@@ -79,9 +83,7 @@ impl Context {
         }
 
         asm!("mov $0, cr3" : "=r"(self.cr3) : : "memory" : "intel", "volatile");
-        if next.cr3 != self.cr3 {
-            asm!("mov cr3, $0" : : "r"(next.cr3) : "memory" : "intel", "volatile");
-        }
+        asm!("mov cr3, $0" : : "r"(next.cr3) : "memory" : "intel", "volatile");
 
         asm!("pushfq ; pop $0" : "=r"(self.rflags) : : "memory" : "intel", "volatile");
         asm!("push $0 ; popfq" : : "r"(next.rflags) : "memory" : "intel", "volatile");

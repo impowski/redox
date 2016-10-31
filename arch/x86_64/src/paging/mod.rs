@@ -263,12 +263,17 @@ impl ActivePageTable {
         old_table
     }
 
-    pub fn flush(&mut self, page: Page) {
-        unsafe { tlb::flush(page.start_address().get()); }
+    pub unsafe fn flush(&mut self, page: Page) {
+        tlb::flush(page.start_address().get());
     }
 
-    pub fn flush_all(&mut self) {
-        unsafe { tlb::flush_all(); }
+    pub unsafe fn flush_all(&mut self) {
+        tlb::flush_all();
+    }
+
+    pub fn flush_ipi(&mut self) {
+        unsafe { tlb::flush_all() };
+        unsafe { ::device::local_apic::LOCAL_APIC.broadcast_ipi(0x41); }
     }
 
     pub fn with<F>(&mut self, table: &mut InactivePageTable, temporary_page: &mut temporary_page::TemporaryPage, f: F)
@@ -284,14 +289,14 @@ impl ActivePageTable {
 
             // overwrite recursive mapping
             self.p4_mut()[511].set(table.p4_frame.clone(), PRESENT | WRITABLE | NO_EXECUTE);
-            self.flush_all();
+            unsafe { self.flush_all(); }
 
             // execute f in the new context
             f(self);
 
             // restore recursive mapping to original p4 table
             p4_table[511].set(backup, PRESENT | WRITABLE | NO_EXECUTE);
-            self.flush_all();
+            unsafe { self.flush_all(); }
         }
 
         temporary_page.unmap(self);

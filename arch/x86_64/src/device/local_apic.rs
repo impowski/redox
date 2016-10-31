@@ -94,13 +94,18 @@ impl LocalApic {
         }
     }
 
-    pub fn ipi(&mut self, apic_id: usize) {
-        let mut icr = 0x4040;
+    pub fn ipi(&mut self, apic_id: usize, vector: u8) {
+        let mut icr = 0x4000 | vector as u64;
         if self.x2 {
             icr |= (apic_id as u64) << 32;
         } else {
             icr |= (apic_id as u64) << 56;
         }
+        self.set_icr(icr);
+    }
+
+    pub fn broadcast_ipi(&mut self, vector: u8) {
+        let icr = 0xFFFFFFFF_00004000 | vector as u64;
         self.set_icr(icr);
     }
 

@@ -380,7 +380,7 @@ extrautils: \
 	filesystem/bin/less \
 	filesystem/bin/mdless \
 	filesystem/bin/mtxt \
-	filesystem/bin/rem \
+	filesystem/bin/rem
 	#filesystem/bin/dmesg filesystem/bin/info filesystem/bin/man filesystem/bin/watch
 
 netutils: \
