@@ -48,6 +48,8 @@ clean:
 	cargo clean --manifest-path schemes/example/Cargo.toml
 	cargo clean --manifest-path schemes/ipd/Cargo.toml
 	cargo clean --manifest-path schemes/orbital/Cargo.toml
+	cargo clean --manifest-path schemes/ptyd/Cargo.toml
+	cargo clean --manifest-path schemes/randd/Cargo.toml
 	cargo clean --manifest-path schemes/redoxfs/Cargo.toml
 	cargo clean --manifest-path schemes/tcpd/Cargo.toml
 	cargo clean --manifest-path schemes/udpd/Cargo.toml
@@ -99,6 +101,8 @@ update:
 	cargo update --manifest-path schemes/example/Cargo.toml
 	cargo update --manifest-path schemes/ipd/Cargo.toml
 	cargo update --manifest-path schemes/orbital/Cargo.toml
+	cargo update --manifest-path schemes/ptyd/Cargo.toml
+	cargo update --manifest-path schemes/randd/Cargo.toml
 	cargo update --manifest-path schemes/redoxfs/Cargo.toml
 	cargo update --manifest-path schemes/tcpd/Cargo.toml
 	cargo update --manifest-path schemes/udpd/Cargo.toml
@@ -106,7 +110,7 @@ update:
 FORCE:
 
 # Emulation
-QEMU=qemu-system-$(ARCH)
+QEMU=SDL_VIDEO_X11_DGAMOUSE=0 qemu-system-$(ARCH)
 QEMUFLAGS=-serial mon:stdio -d cpu_reset -d guest_errors
 ifeq ($(ARCH),arm)
 	LD=$(ARCH)-none-eabi-ld
@@ -227,10 +231,10 @@ $(BUILD)/librand.rlib: rust/src/librand/lib.rs $(BUILD)/libcore.rlib
 $(BUILD)/librustc_unicode.rlib: rust/src/librustc_unicode/lib.rs $(BUILD)/libcore.rlib
 	$(RUSTC) $(RUSTCFLAGS) -o $@ $<
 
-openlibm/libopenlibm.a:
-	CROSSCC=$(CC) CFLAGS=-fno-stack-protector make -C openlibm libopenlibm.a
+libstd/openlibm/libopenlibm.a:
+	CROSSCC=$(CC) CFLAGS=-fno-stack-protector make -C libstd/openlibm libopenlibm.a
 
-$(BUILD)/libopenlibm.a: openlibm/libopenlibm.a
+$(BUILD)/libopenlibm.a: libstd/openlibm/libopenlibm.a
 	mkdir -p $(BUILD)
 	cp $< $@
 
@@ -380,7 +384,7 @@ extrautils: \
 	filesystem/bin/less \
 	filesystem/bin/mdless \
 	filesystem/bin/mtxt \
-	filesystem/bin/rem
+	filesystem/bin/rem \
 	#filesystem/bin/dmesg filesystem/bin/info filesystem/bin/man filesystem/bin/watch
 
 netutils: \
@@ -417,6 +421,7 @@ schemes: \
 	filesystem/bin/example \
 	filesystem/bin/ipd \
 	filesystem/bin/orbital \
+	filesystem/bin/ptyd \
 	filesystem/bin/randd \
 	filesystem/bin/tcpd \
 	filesystem/bin/udpd
@@ -436,7 +441,7 @@ $(BUILD)/filesystem.bin: \
 		filesystem/bin/smith \
 		filesystem/bin/tar
 	rm -rf $@ $(BUILD)/filesystem/
-	echo exit | cargo run --manifest-path schemes/redoxfs/Cargo.toml --bin redoxfs-utility $@ 128
+	echo exit | cargo run --manifest-path schemes/redoxfs/Cargo.toml --bin redoxfs-utility $@ 256
 	mkdir -p $(BUILD)/filesystem/
 	cargo run --manifest-path schemes/redoxfs/Cargo.toml --bin redoxfs-fuse $@ $(BUILD)/filesystem/ &
 	sleep 2

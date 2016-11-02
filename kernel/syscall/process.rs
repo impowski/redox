@@ -196,7 +196,7 @@ pub fn clone(flags: usize, stack_base: usize) -> Result<usize> {
                         tls.mem.size(),
                         entry::PRESENT | entry::NO_EXECUTE | entry::WRITABLE,
                         true,
-                        false
+                        true
                     )
                 };
 
@@ -448,7 +448,6 @@ pub fn clone(flags: usize, stack_base: usize) -> Result<usize> {
 pub fn exec(path: &[u8], arg_ptrs: &[[usize; 2]]) -> Result<usize> {
     let entry;
     let mut sp = arch::USER_STACK_OFFSET + arch::USER_STACK_SIZE - 256;
-    let fs = arch::USER_STACK_OFFSET;
 
     {
         let mut args = Vec::new();
@@ -555,6 +554,18 @@ pub fn exec(path: &[u8], arg_ptrs: &[[usize; 2]]) -> Result<usize> {
 
                             context.image.push(memory.to_shared());
                         } else if segment.p_type == program_header::PT_TLS {
+                            let memory = context::memory::Memory::new(
+                                VirtualAddress::new(arch::USER_TCB_OFFSET),
+                                4096,
+                                entry::NO_EXECUTE | entry::WRITABLE | entry::USER_ACCESSIBLE,
+                                true,
+                                true
+                            );
+
+                            unsafe { *(arch::USER_TCB_OFFSET as *mut usize) = arch::USER_TLS_OFFSET + segment.p_memsz as usize; }
+
+                            context.image.push(memory.to_shared());
+
                             tls_option = Some((
                                 VirtualAddress::new(segment.p_vaddr as usize),
                                 segment.p_filesz as usize,
@@ -601,10 +612,6 @@ pub fn exec(path: &[u8], arg_ptrs: &[[usize; 2]]) -> Result<usize> {
                                     master.get() as *const u8,
                                     file_size);
                         }
-
-                        // Set TLS pointer
-                        //TODO: Do not use stack to store TLS pointer, use a TCB structure instead
-                        unsafe { *(arch::USER_STACK_OFFSET as *mut usize) = tls.mem.start_address().get() + size; }
 
                         context.tls = Some(tls);
                     }
@@ -672,7 +679,7 @@ pub fn exec(path: &[u8], arg_ptrs: &[[usize; 2]]) -> Result<usize> {
     }
 
     // Go to usermode
-    unsafe { usermode(entry, sp, fs); }
+    unsafe { usermode(entry, sp); }
 }
 
 pub fn exit(status: usize) -> ! {
@@ -684,13 +691,14 @@ pub fn exit(status: usize) -> ! {
         };
 
         let mut close_files = Vec::new();
-        {
+        let (pid, ppid) = {
             let mut context = context_lock.write();
             if Arc::strong_count(&context.files) == 1 {
                 mem::swap(context.files.lock().deref_mut(), &mut close_files);
             }
             context.files = Arc::new(Mutex::new(Vec::new()));
-        }
+            (context.id, context.ppid)
+        };
 
         /// Files must be closed while context is valid so that messages can be passed
         for (fd, file_option) in close_files.drain(..).enumerate() {
@@ -709,12 +717,25 @@ pub fn exit(status: usize) -> ! {
             }
         }
 
-        let (vfork, ppid) = {
+        /// Transfer child processes to parent
+        {
+            let contexts = context::contexts();
+            for (_id, context_lock) in contexts.iter() {
+                let mut context = context_lock.write();
+                if context.ppid == pid {
+                    context.ppid = ppid;
+                    context.vfork = false;
+                }
+            }
+        }
+
+        let (vfork, children) = {
             let mut context = context_lock.write();
 
             context.image.clear();
             drop(context.heap.take());
             drop(context.stack.take());
+            drop(context.tls.take());
             context.grants = Arc::new(Mutex::new(Vec::new()));
 
             let vfork = context.vfork;
@@ -722,18 +743,28 @@ pub fn exit(status: usize) -> ! {
 
             context.status = context::Status::Exited(status);
 
-            context.waitpid.notify();
+            let children = context.waitpid.receive_all();
 
-            (vfork, context.ppid)
+            (vfork, children)
         };
 
-        if vfork {
+        {
             let contexts = context::contexts();
             if let Some(parent_lock) = contexts.get(ppid) {
-                let mut parent = parent_lock.write();
-                if ! parent.unblock() {
-                    println!("{} not blocked for exit vfork unblock", ppid);
+                let waitpid = {
+                    let mut parent = parent_lock.write();
+                    if vfork {
+                        if ! parent.unblock() {
+                            println!("{} not blocked for exit vfork unblock", ppid);
+                        }
+                    }
+                    parent.waitpid.clone()
+                };
+
+                for (c_pid, c_status) in children {
+                    waitpid.send(c_pid, c_status);
                 }
+                waitpid.send(pid, status);
             } else {
                 println!("{} not found for exit vfork unblock", ppid);
             }
@@ -969,45 +1000,64 @@ pub fn virttophys(virtual_address: usize) -> Result<usize> {
     }
 }
 
-pub fn waitpid(pid: usize, status_ptr: usize, flags: usize) -> Result<usize> {
-    loop {
-        let mut exited = false;
-        let mut running;
-        let waitpid;
+fn reap(pid: usize) -> Result<usize> {
+    // Spin until not running
+    let mut running = false;
+    while running {
         {
             let contexts = context::contexts();
             let context_lock = contexts.get(pid).ok_or(Error::new(ESRCH))?;
             let context = context_lock.read();
-            if let context::Status::Exited(status) = context.status {
-                if status_ptr != 0 {
-                    let status_slice = validate_slice_mut(status_ptr as *mut usize, 1)?;
-                    status_slice[0] = status;
-                }
-                exited = true;
-            }
             running = context.running;
-            waitpid = context.waitpid.clone();
         }
 
-        if exited {
-            // Spin until not running
-            while running {
-                {
-                    let contexts = context::contexts();
-                    let context_lock = contexts.get(pid).ok_or(Error::new(ESRCH))?;
-                    let context = context_lock.read();
-                    running = context.running;
-                }
+        arch::interrupt::pause();
+    }
 
-                arch::interrupt::pause();
+    let mut contexts = context::contexts_mut();
+    contexts.remove(pid).ok_or(Error::new(ESRCH)).and(Ok(pid))
+}
+
+pub fn waitpid(pid: usize, status_ptr: usize, flags: usize) -> Result<usize> {
+    let waitpid = {
+        let contexts = context::contexts();
+        let context_lock = contexts.current().ok_or(Error::new(ESRCH))?;
+        let context = context_lock.read();
+        context.waitpid.clone()
+    };
+
+    let mut tmp = [0];
+    let status_slice = if status_ptr != 0 {
+        validate_slice_mut(status_ptr as *mut usize, 1)?
+    } else {
+        &mut tmp
+    };
+
+    if pid == 0 {
+        if flags & WNOHANG == WNOHANG {
+            if let Some((w_pid, status)) = waitpid.receive_any_nonblock() {
+                status_slice[0] = status;
+                reap(w_pid)
+            } else {
+                Ok(0)
             }
-
-            let mut contexts = context::contexts_mut();
-            return contexts.remove(pid).ok_or(Error::new(ESRCH)).and(Ok(pid));
-        } else if flags & WNOHANG == WNOHANG {
-            return Ok(0);
         } else {
-            waitpid.wait();
+            let (w_pid, status) = waitpid.receive_any();
+            status_slice[0] = status;
+            reap(w_pid)
+        }
+    } else {
+        if flags & WNOHANG == WNOHANG {
+            if let Some(status) = waitpid.receive_nonblock(&pid) {
+                status_slice[0] = status;
+                reap(pid)
+            } else {
+                Ok(0)
+            }
+        } else {
+            let status = waitpid.receive(&pid);
+            status_slice[0] = status;
+            reap(pid)
         }
     }
 }

@@ -71,30 +71,26 @@ impl LocalApic {
         }
     }
 
-    pub fn icr(&self) -> u64 {
+    pub unsafe fn icr(&self) -> u64 {
         if self.x2 {
-            unsafe { rdmsr(IA32_X2APIC_ICR) }
+            rdmsr(IA32_X2APIC_ICR)
         } else {
-            unsafe {
-                (self.read(0x310) as u64) << 32 | self.read(0x300) as u64
-            }
+            (self.read(0x310) as u64) << 32 | self.read(0x300) as u64
         }
     }
 
-    pub fn set_icr(&mut self, value: u64) {
+    pub unsafe fn set_icr(&mut self, value: u64) {
         if self.x2 {
-            unsafe { wrmsr(IA32_X2APIC_ICR, value); }
+            wrmsr(IA32_X2APIC_ICR, value);
         } else {
-            unsafe {
-                while self.read(0x300) & 1 << 12 == 1 << 12 {}
-                self.write(0x310, (value >> 32) as u32);
-                self.write(0x300, value as u32);
-                while self.read(0x300) & 1 << 12 == 1 << 12 {}
-            }
+            while self.read(0x300) & 1 << 12 == 1 << 12 {}
+            self.write(0x310, (value >> 32) as u32);
+            self.write(0x300, value as u32);
+            while self.read(0x300) & 1 << 12 == 1 << 12 {}
         }
     }
 
-    pub fn ipi(&mut self, apic_id: usize, vector: u8) {
+    pub unsafe fn ipi(&mut self, apic_id: usize, vector: u8) {
         let mut icr = 0x4000 | vector as u64;
         if self.x2 {
             icr |= (apic_id as u64) << 32;
@@ -104,7 +100,7 @@ impl LocalApic {
         self.set_icr(icr);
     }
 
-    pub fn broadcast_ipi(&mut self, vector: u8) {
+    pub unsafe fn broadcast_ipi(&mut self, vector: u8) {
         let icr = 0xFFFFFFFF_00004000 | vector as u64;
         self.set_icr(icr);
     }
