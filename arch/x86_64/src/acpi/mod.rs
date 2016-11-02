@@ -92,7 +92,7 @@ pub fn init_sdt(sdt: &'static Sdt, active_table: &mut ActivePageTable) {
                                 icr |= (ap_local_apic.id as u64) << 56;
                             }
                             print!(" IPI...");
-                            local_apic.set_icr(icr);
+                            unsafe { local_apic.set_icr(icr); }
                         }
 
                         // Send START IPI
@@ -108,7 +108,7 @@ pub fn init_sdt(sdt: &'static Sdt, active_table: &mut ActivePageTable) {
                             }
 
                             print!(" SIPI...");
-                            local_apic.set_icr(icr);
+                            unsafe { local_apic.set_icr(icr); }
                         }
 
                         // Wait for trampoline ready
