@@ -61,34 +61,34 @@ impl Screen for TextScreen {
                     self.ctrl = key_event.pressed;
                 } else if key_event.pressed {
                     match key_event.scancode {
-                        0x47 => { // Home
+                        0x47 if self.console.raw_mode => { // Home
                             buf.extend_from_slice(b"\x1B[H");
                         },
-                        0x48 => { // Up
+                        0x48 if self.console.raw_mode => { // Up
                             buf.extend_from_slice(b"\x1B[A");
                         },
-                        0x49 => { // Page up
+                        0x49 if self.console.raw_mode => { // Page up
                             buf.extend_from_slice(b"\x1B[5~");
                         },
-                        0x4B => { // Left
+                        0x4B if self.console.raw_mode => { // Left
                             buf.extend_from_slice(b"\x1B[D");
                         },
-                        0x4D => { // Right
+                        0x4D if self.console.raw_mode => { // Right
                             buf.extend_from_slice(b"\x1B[C");
                         },
-                        0x4F => { // End
+                        0x4F if self.console.raw_mode => { // End
                             buf.extend_from_slice(b"\x1B[F");
                         },
-                        0x50 => { // Down
+                        0x50 if self.console.raw_mode => { // Down
                             buf.extend_from_slice(b"\x1B[B");
                         },
-                        0x51 => { // Page down
+                        0x51 if self.console.raw_mode => { // Page down
                             buf.extend_from_slice(b"\x1B[6~");
                         },
-                        0x52 => { // Insert
+                        0x52 if self.console.raw_mode => { // Insert
                             buf.extend_from_slice(b"\x1B[2~");
                         },
-                        0x53 => { // Delete
+                        0x53 if self.console.raw_mode => { // Delete
                             buf.extend_from_slice(b"\x1B[3~");
                         },
                         _ => {
